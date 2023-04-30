@@ -34,10 +34,11 @@ const App = () => {
 
   const SignOutButton = () => {
     const { user, signOut } = useAuthenticator(userSelector);
+    console.log(user);
     return (
       <Pressable onPress={signOut} style={styles.buttonContainer}>
         <Text style={styles.buttonText}>
-          Hello, {user.username}! Click here to sign out!
+          Hello, {user?.attributes?.email}! {"\n"}Click here to sign out!
         </Text>
       </Pressable>
     );
@@ -72,6 +73,7 @@ const App = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
+        <SignOutButton />
         <TextInput
           onChangeText={(value) => setInput("name", value)}
           style={styles.input}
@@ -98,7 +100,7 @@ const App = () => {
   );
 };
 
-export default App;
+export default withAuthenticator(App);
 
 const styles = StyleSheet.create({
   container: { width: 400, flex: 1, padding: 20, alignSelf: "center" },
