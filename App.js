@@ -15,6 +15,7 @@ import {
 import 'core-js/full/symbol/async-iterator';
 import { Todo } from "./src/models";
 import awsExports from "./src/aws-exports";
+import { useTodoStore } from "./src/store/todoStore";
 
 Amplify.configure(awsExports);
 
@@ -22,7 +23,7 @@ const initialState = { name: "", description: "" };
 
 const App = () => {
   const [formState, setFormState] = useState(initialState);
-  const [todos, setTodos] = useState([]);
+  const [todos, addTodo, setTodos] = useTodoStore((state) => [state.todos, state.addTodo, state.setTodos]);
   // retrieves only the current value of 'user' from 'useAuthenticator'
   const userSelector = (context) => [context.user];
 
@@ -60,11 +61,11 @@ const App = () => {
     setFormState({ ...formState, [key]: value });
   }
 
-  async function addTodo() {
+  async function addTodoToList() {
     try {
       if (!formState.name || !formState.description) return;
       const todo = { ...formState };
-      setTodos([...todos, todo]); 
+      addTodo(todo);
       setFormState(initialState);
       await DataStore.save(new Todo(todo));
     } catch (err) {
@@ -88,7 +89,7 @@ const App = () => {
           value={formState.description}
           placeholder="Description"
         />
-        <Pressable onPress={addTodo} style={styles.buttonContainer}>
+        <Pressable onPress={addTodoToList} style={styles.buttonContainer}>
           <Text style={styles.buttonText}>Create todo</Text>
         </Pressable>
         {todos.map((todo, index) => (
