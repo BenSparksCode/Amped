@@ -3,10 +3,13 @@ import {
   StyleSheet,
   Text,
   View,
+  FlatList,
   TextInput,
   Pressable,
   SafeAreaView,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { Amplify, DataStore } from "aws-amplify";
 import {
@@ -19,7 +22,14 @@ import awsExports from "./src/aws-exports";
 import { useTodoStore } from "./src/store/todoStore";
 
 // UI STUFF
-import { Header as HeaderRNE, HeaderProps, Icon, Divider } from "@rneui/themed";
+import {
+  Header as HeaderRNE,
+  HeaderProps,
+  Icon,
+  Divider,
+  Card,
+  Button,
+} from "@rneui/themed";
 
 Amplify.configure(awsExports);
 
@@ -62,8 +72,14 @@ const App = () => {
 
   const SignOutButton = () => {
     const { user, signOut } = useAuthenticator(userSelector);
+
+    async function handleSignOut() {
+      await DataStore.clear();
+      signOut();
+    }
+
     return (
-      <Pressable onPress={signOut} style={styles.buttonContainer}>
+      <Pressable onPress={handleSignOut} style={styles.buttonContainer}>
         <Text style={styles.buttonText}>
           Hello, {user?.attributes?.email}! {"\n"}Click here to sign out!
         </Text>
@@ -87,9 +103,17 @@ const App = () => {
     }
   }
 
+  async function deleteTodo(id) {
+    // await DataStore.clear();
+    const toDelete = await DataStore.query(Todo, id);
+    if (toDelete) {
+      DataStore.delete(toDelete);
+    }
+  }
+
   const handleBackPressed = () => {
     console.log("Back button pressed");
-  }
+  };
 
   return (
     <>
@@ -102,11 +126,11 @@ const App = () => {
         }}
         leftComponent={
           <View style={styles.headerLeft}>
-        <TouchableOpacity onPress={handleBackPressed}>
-          <Icon name="arrow-back" color="white" />
-        </TouchableOpacity>
-        </View>
-      }
+            <TouchableOpacity onPress={handleBackPressed}>
+              <Icon name="arrow-back" color="white" />
+            </TouchableOpacity>
+          </View>
+        }
         rightComponent={
           <View style={styles.headerRight}>
             <TouchableOpacity>
@@ -114,38 +138,68 @@ const App = () => {
             </TouchableOpacity>
           </View>
         }
-        centerComponent={{ text: "Amped", style: styles.header }}
+        centerComponent={{
+          text: "Amped",
+          style: { fontSize: 30, color: "white" },
+        }}
       />
       <SafeAreaView style={styles.container}>
         <View style={styles.container}>
-          <SignOutButton />
+          <TouchableWithoutFeedback
+            onPress={Keyboard.dismiss}
+            accessible={false}
+          >
+            <View>
+              <SignOutButton />
 
-          <Divider width={2} color={"green"} style={styles.divider}/>
+              <Divider width={2} color={"green"} style={styles.divider} />
 
-          <TextInput
-            onChangeText={(value) => setInput("name", value)}
-            style={styles.input}
-            value={formState.name}
-            placeholder="Name"
-          />
-          <TextInput
-            onChangeText={(value) => setInput("description", value)}
-            style={styles.input}
-            value={formState.description}
-            placeholder="Description"
-          />
-          <Pressable onPress={addTodoToList} style={styles.buttonContainer}>
-            <Text style={styles.buttonText}>Create todo</Text>
-          </Pressable>
+              <TextInput
+                onChangeText={(value) => setInput("name", value)}
+                style={styles.input}
+                value={formState.name}
+                placeholder="Name"
+              />
+              <TextInput
+                onChangeText={(value) => setInput("description", value)}
+                style={styles.input}
+                value={formState.description}
+                placeholder="Description"
+              />
+              <Pressable onPress={addTodoToList} style={styles.buttonContainer}>
+                <Text style={styles.buttonText}>Create todo</Text>
+              </Pressable>
 
-          <Divider width={2} color={"green"} style={styles.divider}/>
-
-          {todos.map((todo, index) => (
-            <View key={todo.id ? todo.id : index} style={styles.todo}>
-              <Text style={styles.todoName}>{todo.name}</Text>
-              <Text style={styles.todoDescription}>{todo.description}</Text>
+              <Divider width={2} color={"green"} style={styles.divider} />
             </View>
-          ))}
+          </TouchableWithoutFeedback>
+          <View style={{ height: 450 }}>
+            <FlatList
+              keyboardDismissMode="on-drag"
+              data={todos}
+              renderItem={({ item }) => (
+                <Card>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Text style={styles.todoName}>{item.name}</Text>
+                    <Button
+                      onPress={() => deleteTodo(item.id)}
+                      title="deleet"
+                      buttonStyle={{ backgroundColor: "rgba(214, 61, 57, 1)" }}
+                      containerStyle={{ width: 75 }}
+                    />
+                  </View>
+
+                  <Text style={styles.todoDescription}>{item.description}</Text>
+                </Card>
+              )}
+              keyExtractor={(item) => item.id}
+            />
+          </View>
         </View>
       </SafeAreaView>
     </>
@@ -172,5 +226,5 @@ const styles = StyleSheet.create({
   buttonText: { color: "white", padding: 16, fontSize: 18 },
   divider: {
     marginVertical: 10,
-  }
+  },
 });
