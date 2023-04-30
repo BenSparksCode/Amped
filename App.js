@@ -6,16 +6,20 @@ import {
   TextInput,
   Pressable,
   SafeAreaView,
+  TouchableOpacity,
 } from "react-native";
 import { Amplify, DataStore } from "aws-amplify";
 import {
   withAuthenticator,
   useAuthenticator,
 } from "@aws-amplify/ui-react-native";
-import 'core-js/full/symbol/async-iterator';
+import "core-js/full/symbol/async-iterator";
 import { Todo } from "./src/models";
 import awsExports from "./src/aws-exports";
 import { useTodoStore } from "./src/store/todoStore";
+
+// UI STUFF
+import { Header as HeaderRNE, HeaderProps, Icon, Divider } from "@rneui/themed";
 
 Amplify.configure(awsExports);
 
@@ -23,18 +27,28 @@ const initialState = { name: "", description: "" };
 
 const App = () => {
   const [formState, setFormState] = useState(initialState);
-  const [todos, addTodo, setTodos] = useTodoStore((state) => [state.todos, state.addTodo, state.setTodos]);
+  const [todos, addTodo, setTodos] = useTodoStore((state) => [
+    state.todos,
+    state.addTodo,
+    state.setTodos,
+  ]);
   // retrieves only the current value of 'user' from 'useAuthenticator'
   const userSelector = (context) => [context.user];
 
   useEffect(() => {
     // subscribe to new todos being created
     const subscription = DataStore.observeQuery(Todo).subscribe((snapshot) => {
-      const {items, isSynced} = snapshot;
-      if(JSON.stringify(todos) != JSON.stringify(items)) {
+      const { items, isSynced } = snapshot;
+      if (JSON.stringify(todos) != JSON.stringify(items)) {
         console.log("Updating todos");
-        console.log("prev state:", todos);
-        console.log("new state:", items);
+        console.log(
+          "prev state:",
+          todos.map((todo) => todo.name)
+        );
+        console.log(
+          "new state:",
+          items.map((item) => item.name)
+        );
         setTodos(items);
       } else {
         console.log("No update to todos needed");
@@ -73,33 +87,68 @@ const App = () => {
     }
   }
 
+  const handleBackPressed = () => {
+    console.log("Back button pressed");
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.container}>
-        <SignOutButton />
-        <TextInput
-          onChangeText={(value) => setInput("name", value)}
-          style={styles.input}
-          value={formState.name}
-          placeholder="Name"
-        />
-        <TextInput
-          onChangeText={(value) => setInput("description", value)}
-          style={styles.input}
-          value={formState.description}
-          placeholder="Description"
-        />
-        <Pressable onPress={addTodoToList} style={styles.buttonContainer}>
-          <Text style={styles.buttonText}>Create todo</Text>
-        </Pressable>
-        {todos.map((todo, index) => (
-          <View key={todo.id ? todo.id : index} style={styles.todo}>
-            <Text style={styles.todoName}>{todo.name}</Text>
-            <Text style={styles.todoDescription}>{todo.description}</Text>
+    <>
+      <HeaderRNE
+        containerStyle={{
+          backgroundColor: "green",
+          width: "100%",
+          height: 100,
+          paddingTop: 50,
+        }}
+        leftComponent={
+          <View style={styles.headerLeft}>
+        <TouchableOpacity onPress={handleBackPressed}>
+          <Icon name="arrow-back" color="white" />
+        </TouchableOpacity>
+        </View>
+      }
+        rightComponent={
+          <View style={styles.headerRight}>
+            <TouchableOpacity>
+              <Icon name="menu" color="white" />
+            </TouchableOpacity>
           </View>
-        ))}
-      </View>
-    </SafeAreaView>
+        }
+        centerComponent={{ text: "Amped", style: styles.header }}
+      />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
+          <SignOutButton />
+
+          <Divider width={2} color={"green"} style={styles.divider}/>
+
+          <TextInput
+            onChangeText={(value) => setInput("name", value)}
+            style={styles.input}
+            value={formState.name}
+            placeholder="Name"
+          />
+          <TextInput
+            onChangeText={(value) => setInput("description", value)}
+            style={styles.input}
+            value={formState.description}
+            placeholder="Description"
+          />
+          <Pressable onPress={addTodoToList} style={styles.buttonContainer}>
+            <Text style={styles.buttonText}>Create todo</Text>
+          </Pressable>
+
+          <Divider width={2} color={"green"} style={styles.divider}/>
+
+          {todos.map((todo, index) => (
+            <View key={todo.id ? todo.id : index} style={styles.todo}>
+              <Text style={styles.todoName}>{todo.name}</Text>
+              <Text style={styles.todoDescription}>{todo.description}</Text>
+            </View>
+          ))}
+        </View>
+      </SafeAreaView>
+    </>
   );
 };
 
@@ -121,4 +170,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   buttonText: { color: "white", padding: 16, fontSize: 18 },
+  divider: {
+    marginVertical: 10,
+  }
 });
