@@ -7,9 +7,10 @@ import {
   Pressable,
   SafeAreaView,
 } from "react-native";
-import { API, graphqlOperation } from "aws-amplify";
+import { API, graphqlOperation, DataStore } from "aws-amplify";
 import { createTodo } from "./src/graphql/mutations";
 import { listTodos } from "./src/graphql/queries";
+import { Todo } from "./src/models";
 
 import { Amplify } from "aws-amplify";
 import awsExports from "./src/aws-exports";
@@ -17,6 +18,7 @@ import {
   withAuthenticator,
   useAuthenticator,
 } from "@aws-amplify/ui-react-native";
+import 'core-js/full/symbol/async-iterator';
 
 Amplify.configure(awsExports);
 
@@ -29,7 +31,16 @@ const App = () => {
   const userSelector = (context) => [context.user];
 
   useEffect(() => {
-    fetchTodos();
+    // subscribe to new todos being created
+    const subscription = DataStore.observeQuery(Todo).subscribe((snapshot) => {
+      const {items, isSynced} = snapshot;
+      console.log("subscription", items, isSynced);
+      setTodos(items);
+    });
+
+    return function cleanup() {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const SignOutButton = () => {
@@ -45,16 +56,6 @@ const App = () => {
 
   function setInput(key, value) {
     setFormState({ ...formState, [key]: value });
-  }
-
-  async function fetchTodos() {
-    try {
-      const todoData = await API.graphql(graphqlOperation(listTodos));
-      const todos = todoData.data.listTodos.items;
-      setTodos(todos);
-    } catch (err) {
-      console.log("error fetching todos");
-    }
   }
 
   async function addTodo() {
