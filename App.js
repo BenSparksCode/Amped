@@ -7,18 +7,14 @@ import {
   Pressable,
   SafeAreaView,
 } from "react-native";
-import { API, graphqlOperation, DataStore } from "aws-amplify";
-import { createTodo } from "./src/graphql/mutations";
-import { listTodos } from "./src/graphql/queries";
-import { Todo } from "./src/models";
-
-import { Amplify } from "aws-amplify";
-import awsExports from "./src/aws-exports";
+import { Amplify, DataStore } from "aws-amplify";
 import {
   withAuthenticator,
   useAuthenticator,
 } from "@aws-amplify/ui-react-native";
 import 'core-js/full/symbol/async-iterator';
+import { Todo } from "./src/models";
+import awsExports from "./src/aws-exports";
 
 Amplify.configure(awsExports);
 
@@ -34,8 +30,14 @@ const App = () => {
     // subscribe to new todos being created
     const subscription = DataStore.observeQuery(Todo).subscribe((snapshot) => {
       const {items, isSynced} = snapshot;
-      console.log("subscription", items, isSynced);
-      setTodos(items);
+      if(JSON.stringify(todos) != JSON.stringify(items)) {
+        console.log("Updating todos");
+        console.log("prev state:", todos);
+        console.log("new state:", items);
+        setTodos(items);
+      } else {
+        console.log("No update to todos needed");
+      }
     });
 
     return function cleanup() {
@@ -62,9 +64,9 @@ const App = () => {
     try {
       if (!formState.name || !formState.description) return;
       const todo = { ...formState };
-      setTodos([...todos, todo]);
+      setTodos([...todos, todo]); 
       setFormState(initialState);
-      await API.graphql(graphqlOperation(createTodo, { input: todo }));
+      await DataStore.save(new Todo(todo));
     } catch (err) {
       console.log("error creating todo:", err);
     }
