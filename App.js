@@ -34,7 +34,6 @@ const App = () => {
 
   const SignOutButton = () => {
     const { user, signOut } = useAuthenticator(userSelector);
-    console.log(user);
     return (
       <Pressable onPress={signOut} style={styles.buttonContainer}>
         <Text style={styles.buttonText}>
